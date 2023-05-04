@@ -69,8 +69,8 @@ class ApiRequest {
             $dom2->load($Request_Results);
             $elements = $dom2->find('*[plaintext^="Объем торгов на срочном рынке"]');
             $element_plaintext = $elements[0]->plaintext;
-
-            $this->WriteTxtFile($link->plaintext . ',' . $href, $element_plaintext, "savertxt");
+            $link_plain = $link->plaintext;
+            $this->WriteTxtFile($link_plain, $element_plaintext, "savertxt");
             $pattern = '/\d+,\d+ (млрд|млн|трлн)/';
             preg_match($pattern, $element_plaintext, $matches);
             if (!empty($matches)) {
@@ -106,7 +106,7 @@ class ApiRequest {
     public function WriteTxtFile($namefile, $write, $path)
     {
         if (is_dir($path)) {
-            $return_new_path = $path.'\\'.str_replace('/', '_', explode('//', explode('?', $namefile)[0])[1]).".txt";
+            $return_new_path = $path.'\\'.$namefile.".txt";
             file_put_contents($return_new_path, $write, FILE_APPEND);
             return $return_new_path;
         }
