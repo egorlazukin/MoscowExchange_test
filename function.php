@@ -33,13 +33,7 @@ class ApiRequest {
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_HTTPHEADER, $this->header);
             curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 0);
-            $response = curl_exec($ch);
-            if($response === false)
-            {
-                echo 'Ошибка curl: ' . curl_error($ch);
-                echo 'Ошибка curl: ' . curl_errno($ch);
-            }
-             
+            $response = curl_exec($ch);             
             curl_close($ch);
             return $response;    
         }
@@ -75,12 +69,50 @@ class ApiRequest {
             $dom2->load($Request_Results);
             $elements = $dom2->find('*[plaintext^="Объем торгов на срочном рынке"]');
             $element_plaintext = $elements[0]->plaintext;
+
+            $this->WriteTxtFile($link->plaintext . ',' . $href, $element_plaintext, "savertxt");
+            $pattern = '/\d+,\d+ (млрд|млн|трлн)/';
+            preg_match($pattern, $element_plaintext, $matches);
+            if (!empty($matches)) {
+                $value = $matches[0];
+                $element_plaintext = $value;
+            } else {
+                $element_plaintext = 'Значение не найдено';
+            }
+
+            if (strripos($element_plaintext, 'трлн') !== false) {
+                $element_plaintext = str_replace('трлн', '', $element_plaintext);
+                $element_plaintext = $element_plaintext*1000000000000;
+                // 1000000000000 - трлн
+            }
+            elseif (strripos($element_plaintext, 'млрд') !== false) {
+                $element_plaintext = str_replace('млрд', '', $element_plaintext);
+                $element_plaintext = $element_plaintext*1000000000;
+                // 1000000000 - млрд
+            }
+            elseif (strripos($element_plaintext, 'млн') !== false) {
+                $element_plaintext = str_replace('млн', '', $element_plaintext);
+                $element_plaintext = $element_plaintext*1000000;
+                // 1000000 - млн
+            }
+
             if (empty($AllInfo)) 
-                $AllInfo = $link->plaintext . ';' . $href. ';'. $element_plaintext;
+                $AllInfo = $link->plaintext . ';' . $href . ';' . $element_plaintext;
             else
-                $AllInfo = $AllInfo.PHP_EOL.$link->plaintext . ';' . $href. ';'.$element_plaintext;
+                $AllInfo = $AllInfo.PHP_EOL.$link->plaintext . ';' . $href . ';' . $element_plaintext . " рублей";
         }
         $this->WriteCsvFile($AllInfo, "saver");
+    }
+    public function WriteTxtFile($namefile, $write, $path)
+    {
+        if (is_dir($path)) {
+            $return_new_path = $path.'\\'.str_replace('/', '_', explode('//', explode('?', $namefile)[0])[1]).".txt";
+            file_put_contents($return_new_path, $write, FILE_APPEND);
+            return $return_new_path;
+        }
+        echo "Path not found";
+        return null;
+
     }
     public function WriteCsvFile($write, $path)
     {
